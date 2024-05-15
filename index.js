@@ -16,7 +16,7 @@ app
   .use(router());
 
 const initialize = async () => {
-  backgroundWorker.stockWorker.syncDailyStockInfoJob();
+  backgroundWorker.stockWorker.syncDailyStocksInfoJob();
 };
 
 app.listen(Config.port, () => {

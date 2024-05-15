@@ -14,7 +14,7 @@ fs
 
 console.log('***** Creating/Altering Table *****');
 sequelize
-  .sync({ force: true })
+  .sync({ alter: true })
   .then(async () => {
     console.log('***** Creating/Altering Table Success *****');
     process.exit();

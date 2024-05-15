@@ -5,12 +5,8 @@ const headers = { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)\ Appl
 
 const yStockBasicUrl = 'https://tw.stock.yahoo.com/quote/';
 
-const STOCKS = [
-  '0050', '0056', '2330', '2317', '1216',
-];
-
 const crawlYahooStockSite = async (stockCode) => {
-  const webContent = await axios(`${yStockBasicUrl}${stockCode}`, { headers });
+  const webContent = await axios(`${yStockBasicUrl}${stockCode}.TW`, { headers });
   const $ = cheerio.load(webContent.data);
   const name = $('h1').filter((i, element) => $(element).text().trim() !== 'Yahoo奇摩財經').text();
   const price = $('.Fz\\(32px\\)').text();
@@ -25,17 +21,6 @@ const crawlYahooStockSite = async (stockCode) => {
   };
 };
 
-const crawlStocksOfYahooStock = async () => {
-  const crawlPromises = STOCKS.map(async (data) => crawlYahooStockSite(data));
-  const dataOfStocks = await Promise.all(crawlPromises);
-  const dataOfStocksMap = dataOfStocks.reduce((acc, data) => {
-    acc[data.stockCode] = data;
-    return acc;
-  }, {});
-  return dataOfStocksMap;
-};
-
 module.exports = {
   crawlYahooStockSite,
-  crawlStocksOfYahooStock,
 };

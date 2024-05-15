@@ -1,6 +1,4 @@
 const erroCodeTranslation = {
-  INVALID_AUTHORIZATION: '認證錯誤',
-  INVALID_USER_TOKEN: '權限不足',
   INTERNAL_SERVER_ERROR: '系統錯誤',
   INVALID_ARGC_EMPTY: '資料為空',
 };
@@ -30,137 +28,102 @@ const handleError = async (errorCode) => {
   }
 };
 
-const verifyToken = localStorage.getItem('access_token');
-if (!verifyToken) {
-  document.location.href = './login.html';
-}
-
 window.onload = async () => {
-  document.getElementById('logout').addEventListener('click', () => {
-    localStorage.removeItem('access_token');
-    document.location.href = './login.html';
-  });
+  const verifyToken = localStorage.getItem('access_token');
+  if (verifyToken) {
+    document.getElementById('login-btn').classList.add('hidden');
+    document.getElementById('user-dropdown').classList.remove('hidden');
+  }
 
-  const sendStockData = (stockCode, isMonitoring) => {
-    const isAdding = !isMonitoring;
-    const bodyData = {
-      isAdding,
-      stockCode,
-    };
-
-    fetch('/stock/userStocks', {
-      method: 'post',
-      headers: new Headers({
-        Authorization: `Bearer ${verifyToken}`,
-        'Content-type': 'application/json',
-      }),
-      body: JSON.stringify(bodyData),
-    }).then((response) => response.json())
-      .then((response) => {
-        const { success, errorCode } = response;
-        if (!success) return handleError(errorCode);
-        document.location.href = './index.html';
-      }).catch((error) => console.error(error.message));
-  };
-
-  fetch('/stock/list', {
-    method: 'get',
-    headers: new Headers({
-      Authorization: `Bearer ${verifyToken}`,
-      'Content-Type': 'application/json',
-    }),
-  }).then((response) => response.json())
-    .then((response) => {
-      const { success, errorCode } = response;
-      if (!success) return handleError(errorCode);
-      const stockUlistHtml = document.getElementById('stockList');
-      const { stockList } = response.value;
-      stockList.forEach((data) => {
-        const { stockCode, name, isMonitoring } = data;
-        const listItem = document.createElement('li');
-        listItem.classList.add('col');
-
-        const buttonHtml = isMonitoring
-          ? '<button type="button" class="btn btn-outline-danger btn-sm addBtn">取消關注</button>'
-          : '<button type="button" class="btn btn-outline-primary btn-sm addBtn">+ 關注</button>';
-        listItem.innerHTML = `<div class="card">
-                                          <div class="card-body">${name}</div>
-                                          <div class="card-footer">
-                                              ${buttonHtml}
-                                          </div>
-                                      </div>`;
-
-        stockUlistHtml.appendChild(listItem);
-
-        listItem.querySelector('.addBtn').addEventListener('click', () => {
-          sendStockData(stockCode, isMonitoring);
-        });
-      });
-    }).catch((error) => console.error(error.message));
-
-  fetch('/stock/userStocks', {
+  fetch('/member/userInfo', {
     method: 'get',
     headers: new Headers({
       Authorization: `Bearer ${verifyToken}`,
       'Content-type': 'application/json',
     }),
-  }).then((response) => response.json())
+  })
+    .then((response) => response.json())
     .then((response) => {
-      const { success, errorCode } = response;
-      if (!success) return handleError(errorCode);
+      const dropdownComponent = document.getElementById('navbarDropdown');
+      dropdownComponent.innerHTML = response.value.username;
+    });
 
-      const dataByStock = response.value;
-      const noStockSign = '<h4>尚無關注的股票<h4>';
-      if (dataByStock.length === 0) {
-        document.getElementById('yourStocks').innerHTML = noStockSign;
-      }
+  const searchButtons = document.querySelectorAll('.search-button');
+  const searchStock = () => {
+    const searchQuerysComponents = document.querySelectorAll('.search-box');
+    const firstSearchQuery = searchQuerysComponents[0].value;
+    const searchQuery = firstSearchQuery.length
+      ? firstSearchQuery : searchQuerysComponents[1].value;
+    fetch(`/stock/stock?query=${searchQuery}`)
+      .then((response) => response.json())
+      .then((response) => {
+        const { success, errorCode } = response;
+        if (!success) return handleError(errorCode);
 
-      const historyDataHtml = dataByStock.map((data) => {
-        const { dataOfToday, historyData } = data;
-        const tbodyData = historyData.map((d) => {
-          const { date, openPrice, closePrice } = d;
+        const { dataOfToday, dataOfHistory } = response.value;
+
+        const historyDataHtml = dataOfHistory.map((data) => {
+          const { date, openPrice, closePrice } = data;
           return ` <tr>
-                        <td>${date.split(' ')[0]}</td>
-                        <td>${openPrice}</td>
-                        <td>${closePrice}</td>
-                    </tr>`;
+                    <td>${date.split(' ')[0]}</td>
+                    <td>${openPrice}</td>
+                    <td>${closePrice}</td>
+                </tr>`;
         });
 
-        return `<div>
-                    <h4>${dataOfToday.name} ${dataOfToday.stockCode}</h4>
-                    <div>
-                        <h5>今日股價</h5>
-                        <table border="1">
-                            <tr>
-                                <th>Open Price</th>
-                                <th>Current Price</th>
-                            </tr>
-                            <tr>
-                                <td>${dataOfToday.openPrice}</td>
-                                <td>${dataOfToday.price}</td>
-                            </tr>
-                        </table>
-                    </div>
-                    <table border="1">
-                        <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Open Price</th>
-                                <th>Close Price</th>
-                            </tr>
-                        </thead>
-                        <tbody id="">
-                            ${tbodyData.join('')}
-                        </tbody>
-                    </table>
-                </div>
-                <hr>`;
-      });
-      const historicalDataItem = document.createElement('div');
-      historicalDataItem.innerHTML = historyDataHtml.join('');
+        const searchBodyComponent = document.getElementById('search-body');
+        if (!searchBodyComponent.classList.contains('hidden')) {
+          searchBodyComponent.classList.add('hidden');
+        }
 
-      if (historyDataHtml.length > 0) {
-        document.getElementById('yourStocks').appendChild(historicalDataItem);
-      }
+        const stockInfoComponent = document.getElementById('stockInfo');
+        if (stockInfoComponent.classList.contains('hidden')) {
+          stockInfoComponent.classList.remove('hidden');
+        }
+
+        stockInfoComponent.innerHTML = `<div>
+            <div class="container-fluid justify-content-start">
+                <div class="row justify-content-start">
+                    <div class="col-4">
+                        <h4>${dataOfToday.name} ${dataOfToday.stockCode}</h4>
+                    </div>
+                    <div class="col-4">
+                        <button type="button" class="btn btn-outline-primary">+ 關注</button>
+                    </div>
+                </div>         
+            </div> 
+            <div>
+                <h5>今日股價</h5>
+                <table border="1">
+                    <tr>
+                        <th>Open Price</th>
+                        <th>Current Price</th>
+                    </tr>
+                    <tr>
+                        <td>${dataOfToday.openPrice}</td>
+                        <td>${dataOfToday.price}</td>
+                    </tr>
+                </table>
+            </div>
+            <table border="1">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Open Price</th>
+                        <th>Close Price</th>
+                    </tr>
+                </thead>
+                <tbody id="">
+                    ${historyDataHtml.join('')}
+                </tbody>
+            </table>
+        </div>
+        <hr>`;
+      }).catch((error) => console.error(error.message));
+  };
+  searchButtons.forEach((searchButton) => {
+    searchButton.addEventListener('click', () => {
+      searchStock();
     });
+  });
 };

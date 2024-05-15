@@ -1,13 +1,10 @@
 const schedule = require('node-schedule');
 const { Op } = require('sequelize');
+const moment = require('moment');
 const { Stocks } = require('../models/stocks');
 const apis = require('../utils/apis');
 const { sequelize } = require('../models/index');
 const tools = require('../utils/tools');
-
-const STOCKS = [
-  '0050', '0056', '2330', '2317', '1216',
-];
 
 const insertStockInfoToDB = async (stocks) => {
   const lastMonth = new Date().getMonth();
@@ -39,23 +36,45 @@ const insertStockInfoToDB = async (stocks) => {
   }
 };
 
-const syncDailyStockInfo = async () => {
-  for (let i = 0; i < STOCKS.length; i++) {
-    await insertStockInfoToDB(STOCKS);
+const insertLastDayStocks = async () => {
+  const transaction = await sequelize.transaction();
+  try {
+    const stocksBatch = await apis.getLastDayAllStocks();
+    const lastDate = moment().subtract(1, 'days').format('YYYY-MM-DD');
+    await Stocks.destroy({
+      where: {
+        date: {
+          [Op.gte]: moment(lastDate).format('YYYY-MM-DD'),
+          [Op.lt]: moment().format('YYYY-MM-DD'),
+        },
+      },
+    });
+
+    const insertPromises = stocksBatch.map(async (stocks) => {
+      await Stocks.bulkCreate(stocks, { transaction });
+    });
+    await Promise.all(insertPromises);
+    await transaction.commit();
+  } catch (error) {
+    await transaction.rollback();
+    console.error(`insertLastDayStocks errors - ${JSON.stringify(error)}`);
   }
 };
 
-const syncDailyStockInfoJob = () => {
+const syncDailyStocksInfoJob = async () => {
   const rule = new schedule.RecurrenceRule();
-  rule.minute = 0;
-  rule.hour = 0;
+  rule.minute = 55;
+  rule.hour = 23;
+  rule.dayOfWeek = [new schedule.Range(1, 5)];
+
   schedule.scheduleJob(rule, async () => {
     console.log('syncDailyStockInfoJob starts.');
-    await syncDailyStockInfo();
+    await insertLastDayStocks();
   });
 };
 
 module.exports = {
-  syncDailyStockInfoJob,
   insertStockInfoToDB,
+  insertLastDayStocks,
+  syncDailyStocksInfoJob,
 };

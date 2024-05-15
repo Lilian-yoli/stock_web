@@ -3,6 +3,7 @@ const apis = require('./apis');
 const crawler = require('./crawler');
 const errorCode = require('./errorCode');
 const jwt = require('./jwt');
+const cacher = require('./cacher');
 
 module.exports = {
   tools,
@@ -10,4 +11,5 @@ module.exports = {
   crawler,
   errorCode,
   jwt,
+  cacher,
 };

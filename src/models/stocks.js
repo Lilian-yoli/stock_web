@@ -1,12 +1,13 @@
-const { Sequelize, DataTypes } = require('sequelize');
+const { DataTypes } = require('sequelize');
 const { sequelize, BaseModel } = require('./index');
 
 const stocks = {
   stockCode: { type: DataTypes.TEXT, allowNull: false },
   name: { type: DataTypes.TEXT, allowNull: false },
   date: { type: DataTypes.DATE, allowNull: false },
-  openPrice: { type: DataTypes.INTEGER, allowNull: false },
-  closePrice: { type: DataTypes.INTEGER, allowNull: false },
+  openPrice: { type: DataTypes.INTEGER },
+  closePrice: { type: DataTypes.INTEGER },
+  volume: { type: DataTypes.INTEGER },
   ...BaseModel,
 };
 
