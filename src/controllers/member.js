@@ -71,7 +71,18 @@ const login = async (ctx, next) => {
   await next();
 };
 
+const getUserInfo = async (ctx, next) => {
+  const { userData } = ctx.session;
+  const { id, username } = userData;
+  ctx.body = {
+    success: true,
+    value: { id, username },
+  };
+  await next();
+};
+
 module.exports = {
   signUp,
   login,
+  getUserInfo,
 };

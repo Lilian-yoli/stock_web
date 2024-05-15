@@ -20,6 +20,11 @@ const stock = [
     beforeAction: [middleware.beforeAction.authorization],
     controller: controllers.stock.getStocksByMember,
   },
+  {
+    method: 'get',
+    path: '/stock',
+    controller: controllers.stock.getStock,
+  },
 ];
 
 module.exports = {
