@@ -1,4 +1,5 @@
 const Sequelize = require('sequelize');
+const mongoose = require('mongoose');
 const { Config } = require('../../config');
 
 const sequelize = new Sequelize({
@@ -12,6 +13,17 @@ const BaseModel = {
     defaultValue: true,
   },
 };
+
+mongoose.connect(Config.mongodbUri, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => {
+    console.log('MongoDB connect successfully');
+  })
+  .catch((error) => {
+    console.error('Fail to connect to MongoDB:', error);
+  });
 
 const testDBConnection = async (seql) => {
   try {

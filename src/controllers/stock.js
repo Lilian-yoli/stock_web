@@ -97,7 +97,7 @@ const getHistoryDataOfStock = async (query) => {
     replacements: { query },
     type: sequelize.QueryTypes.SELECT,
   });
-  console.log({ stock });
+
   return stock;
 };
 
@@ -118,6 +118,7 @@ const getList = async (ctx, next) => {
                         S.isValid = true
                 GROUP BY
                         S.stockCode
+                LIMIT 30
                 `;
   try {
     const stockList = await sequelize.query(SQL, {

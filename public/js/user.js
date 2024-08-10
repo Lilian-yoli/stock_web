@@ -41,6 +41,34 @@ window.onload = async () => {
     document.location.href = './login.html';
   });
 
+  const socket = io({
+    query: {
+      token: verifyToken,
+    },
+  });
+
+  socket.on('auth_error', (message) => {
+    console.error('Authentication error:', message);
+  });
+
+  socket.on('todayPriceChanged', (_data) => {
+    const targetElements = Array.from(document.querySelectorAll('.targetStocks'));
+    const stockCodes = targetElements.map((element) => element.getAttribute('name'));
+
+    socket.emit('todayPriceCode', stockCodes);
+  });
+
+  socket.on('todayPriceByCode', (data) => {
+    const currentPriceElements = Array.from(document.querySelectorAll('.currentPrice'));
+    const stockCodes = currentPriceElements.map((element) => element.getAttribute('name'));
+
+    currentPriceElements.forEach((element, index) => {
+      if (data[stockCodes[index]]) {
+        element.innerHTML = data[stockCodes[index]];
+      }
+    });
+  });
+
   const sendStockData = (stockCode, isMonitoring) => {
     const isAdding = !isMonitoring;
     const bodyData = {
@@ -59,7 +87,7 @@ window.onload = async () => {
       .then((response) => {
         const { success, errorCode } = response;
         if (!success) return handleError(errorCode);
-        document.location.href = './index.html';
+        document.location.href = './user.html';
       }).catch((error) => console.error(error.message));
   };
 
@@ -121,13 +149,17 @@ window.onload = async () => {
           const { date, openPrice, closePrice } = d;
           return ` <tr>
                         <td>${date.split(' ')[0]}</td>
-                        <td>${openPrice}</td>
+                        <td>
+                          ${openPrice}
+                        </td>
                         <td>${closePrice}</td>
                     </tr>`;
         });
 
         return `<div>
-                    <h4>${dataOfToday.name} ${dataOfToday.stockCode}</h4>
+                    <h4 class="targetStocks" name="${dataOfToday.stockCode}">
+                      ${dataOfToday.name} ${dataOfToday.stockCode}
+                    </h4>
                     <div>
                         <h5>今日股價</h5>
                         <table border="1">
@@ -137,7 +169,9 @@ window.onload = async () => {
                             </tr>
                             <tr>
                                 <td>${dataOfToday.openPrice}</td>
-                                <td>${dataOfToday.price}</td>
+                                <td class="currentPrice" name="${dataOfToday.stockCode}">
+                                  ${dataOfToday.price}
+                                </td>
                             </tr>
                         </table>
                     </div>

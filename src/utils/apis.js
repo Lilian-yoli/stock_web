@@ -13,28 +13,30 @@ const formFirstDateOfMonth = (month) => {
 };
 
 const getTodayData = async (stockCodes) => {
-  const apiBasicUrl = 'http://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=';
+  const apiBasicUrl = 'http://mis.twse.com.tw/stock/api/getStockInfo.jsp';
   try {
-    const dataOfTodayPromises = stockCodes.map(async (code) => {
-      const {
-        o, y, z, d, n,
-      } = await axios(`${apiBasicUrl}tse_${code}.tw`)
-        .then((data) => data.data.msgArray[0])
-        .catch((error) => { throw error; });
+    const exChParam = stockCodes.map((code) => `tse_${code}.tw`).join('|');
+    const stockRawData = await axios(apiBasicUrl, {
+      params: {
+        ex_ch: exChParam,
+        json: '1',
+        delay: '0',
+      },
+    }).then((response) => response.data.msgArray)
+      .catch((error) => console.error(error));
 
-      const dataByCode = {};
-      dataByCode[code] = {
-        name: n,
-        openPrice: o,
-        closePrice: y,
-        price: z,
-        date: moment(d, 'YYYYMMDD').toISOString(),
+    const stocksData = stockRawData.map((code) => {
+      const { z, c } = code;
+
+      const stockData = {
+        code: c,
+        price: Number(z) ? Number(z) : null,
+        time: moment().toISOString(),
       };
-      return dataByCode;
+      return stockData;
     });
 
-    const dataOfToday = await Promise.all(dataOfTodayPromises);
-    return dataOfToday;
+    return stocksData;
   } catch (error) {
     console.error(`getTodayData errors - ${JSON.stringify(error)}`);
     throw error;
