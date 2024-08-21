@@ -3,6 +3,7 @@ const erroCodeTranslation = {
   INVALID_USER_TOKEN: '權限不足',
   INTERNAL_SERVER_ERROR: '系統錯誤',
   INVALID_ARGC_EMPTY: '資料為空',
+  STOCK_NOT_FOUND: '無此資料',
 };
 
 const failLoginMsg = (msg) => Swal.fire({

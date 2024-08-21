@@ -26,12 +26,16 @@ const getTodayData = async (stockCodes) => {
       .catch((error) => console.error(error));
 
     const stocksData = stockRawData.map((code) => {
-      const { z, c } = code;
+      const {
+        z, c, o, n,
+      } = code;
 
       const stockData = {
         code: c,
+        name: n,
         price: Number(z) ? Number(z) : null,
         time: moment().toISOString(),
+        openPrice: Number(o) ? Number(o) : null,
       };
       return stockData;
     });

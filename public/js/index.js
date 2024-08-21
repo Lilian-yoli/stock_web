@@ -55,8 +55,11 @@ window.onload = async () => {
   socket.on('todayPriceByCode', (data) => {
     const targetElement = document.getElementById('targetStock');
     const stockCode = targetElement.getAttribute('name');
-    const currentPriceElement = document.getElementById('todayCurrentPrice');
-    currentPriceElement.innerHTML = data[stockCode];
+
+    if (data[stockCode]) {
+      const currentPriceElement = document.getElementById('todayCurrentPrice');
+      currentPriceElement.innerHTML = data[stockCode];
+    }
   });
 
   fetch('/member/userInfo', {

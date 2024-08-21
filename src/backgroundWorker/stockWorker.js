@@ -86,7 +86,6 @@ const getRealTimeStocksPrice = async (allStocksCode) => {
 
   return allStockData;
 };
-
 const saveStocksPriceToDb = async (batchedStocksPrice) => {
   await TodayPrice.deleteMany();
   const promises = batchedStocksPrice.map(async (data) => {
@@ -97,7 +96,7 @@ const saveStocksPriceToDb = async (batchedStocksPrice) => {
 
 const updateRealTimeStockPrice = async () => {
   const rule = new schedule.RecurrenceRule();
-  rule.minute = new schedule.Range(0, 59, 1);
+  rule.minute = new schedule.Range(0, 59, 5);
   rule.hour = new schedule.Range(9, 18);
   rule.dayOfWeek = [new schedule.Range(1, 5)];
 
@@ -123,11 +122,6 @@ const syncDailyStocksInfoJob = async () => {
   });
 };
 
-const test = async (code) => {
-  const data = await TodayPrice.find(code);
-  console.log(data);
-};
-
 module.exports = {
   insertStockInfoToDB,
   insertLastDayStocks,
@@ -136,5 +130,4 @@ module.exports = {
   getAllStocksCode,
   getRealTimeStocksPrice,
   saveStocksPriceToDb,
-  test,
 };

@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 
 const todayPriceSchema = new mongoose.Schema({
   code: String,
+  name: String,
   price: Number,
+  openPrice: Number,
   time: Date,
 });
 

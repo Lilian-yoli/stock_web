@@ -17,7 +17,10 @@ const crawlYahooStockSite = async (stockCode) => {
     .text();
 
   return {
-    price, openPrice, name, stockCode,
+    price: Number(price),
+    openPrice: Number(openPrice),
+    name,
+    stockCode,
   };
 };
 

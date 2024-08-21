@@ -5,9 +5,10 @@ const { errorCode } = require('../utils/errorCode');
 const utils = require('../utils');
 const { sequelize } = require('../models');
 const { Stocks } = require('../models/stocks');
+const { TodayPrice } = require('../models/todayPrice');
 
 const findMissingDates = async (historyData, last2WeekTradeDates) => {
-  const historyDates = historyData.map((data) => moment(data.date).format('YYYY-MM-DD'));
+  const historyDates = historyData.map((data) => moment(new Date(data.date).toISOString()).format('YYYY-MM-DD'));
   const missingDates = _.difference(last2WeekTradeDates, historyDates);
   return missingDates;
 };
@@ -35,6 +36,38 @@ const checkAndUpdateHistoryData = async (historyData) => {
 
   await Stocks.bulkCreate(dataToUpdate);
   return dataToUpdate;
+};
+
+const getDataOfToday = async (codes) => {
+  const todayDataFromMongo = await TodayPrice.find({
+    code: { $in: codes },
+    price: { $ne: null },
+  });
+  const codesFromMongo = todayDataFromMongo.map((data) => data.code);
+  const codesWithEmptyPrice = _.difference(codes, codesFromMongo);
+
+  const todayStocksFromMongo = todayDataFromMongo.map((data) => {
+    const {
+      price, name, code, openPrice,
+    } = data;
+    return {
+      stockCode: code,
+      name,
+      price,
+      openPrice,
+    };
+  });
+
+  if (!codesWithEmptyPrice.length) {
+    return todayStocksFromMongo;
+  }
+
+  const dataOfTodayPromises = codesWithEmptyPrice.map(
+    (code) => utils.cacher.getStockOfTodayByCode(code),
+  );
+  const dataOfToday = await Promise.all(dataOfTodayPromises);
+
+  return [...dataOfToday, ...todayStocksFromMongo];
 };
 
 const getHistoryDataGroupByCode = async (username) => {
@@ -67,14 +100,6 @@ const getHistoryDataGroupByCode = async (username) => {
   });
 
   return _.groupBy(historyData, 'stockCode');
-};
-
-const formMemberStocks = async (stocks, historyDataGroupByCode) => {
-  const promises = stocks.map(async (code) => ({
-    dataOfToday: await utils.cacher.getStockOfTodayByCode(code),
-    historyData: historyDataGroupByCode[code],
-  }));
-  return Promise.all(promises);
 };
 
 const getHistoryDataOfStock = async (query) => {
@@ -184,15 +209,20 @@ const getStocksByMember = async (ctx, next) => {
     const checkAndUpdatedPromises = groupedHistoryData.map(async (historyData) => {
       await checkAndUpdateHistoryData(historyData);
     });
-    const addedData = await Promise.all(checkAndUpdatedPromises);
+
+    const addedData = (await Promise.all(checkAndUpdatedPromises)).filter((data) => data);
     const isAddedData = addedData.length !== 0;
+
+    const allHistoryDataGroupByCode = isAddedData
+      ? await getHistoryDataGroupByCode(username) : historyDataGroupByCode;
 
     const monitoredStocks = Object.keys(historyDataGroupByCode);
 
-    const stocksData = await formMemberStocks(
-      monitoredStocks,
-      isAddedData ? await getHistoryDataGroupByCode(username) : historyDataGroupByCode,
-    );
+    const dataOfToday = await getDataOfToday(monitoredStocks);
+    const stocksData = dataOfToday.map((data) => ({
+      dataOfToday: data,
+      historyData: allHistoryDataGroupByCode[data.stockCode],
+    }));
 
     ctx.body = {
       success: true,
@@ -207,7 +237,7 @@ const getStocksByMember = async (ctx, next) => {
 
 const getStock = async (ctx, next) => {
   const { query } = ctx.request.query;
-  if (!query) ctx.throw(errorCode.INVALID_ARGC_EMPTY);
+  if (!query) ctx.throw(400, errorCode.INVALID_ARGC_EMPTY);
 
   try {
     const dataOfHistory = await getHistoryDataOfStock(query);
@@ -215,7 +245,8 @@ const getStock = async (ctx, next) => {
     const isAddedData = !!addedData;
 
     const stockCodeFromData = dataOfHistory.length ? dataOfHistory[0].stockCode : null;
-    const dataOfToday = await utils.cacher.getStockOfTodayByCode(stockCodeFromData);
+    const [dataOfToday] = await getDataOfToday([stockCodeFromData]);
+    if (!dataOfToday) ctx.throw(400, errorCode.STOCK_NOT_FOUND);
 
     ctx.body = {
       success: true,
