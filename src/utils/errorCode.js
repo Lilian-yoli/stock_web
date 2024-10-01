@@ -23,6 +23,10 @@ const errorCode = {
     type: 'INVALID_AUTHORIZATION',
     message: 'The authorization is not valid',
   },
+  STOCK_NOT_FOUND: {
+    type: 'STOCKS_NOT_FOUND',
+    message: 'Could not find the stock',
+  },
 };
 
 module.exports = {

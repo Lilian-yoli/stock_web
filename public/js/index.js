@@ -30,10 +30,37 @@ const handleError = async (errorCode) => {
 
 window.onload = async () => {
   const verifyToken = localStorage.getItem('access_token');
+  const socket = io({
+    query: {
+      token: verifyToken,
+    },
+  });
+
+  socket.on('auth_error', (message) => {
+    console.error('Authentication error:', message);
+  });
+
   if (verifyToken) {
     document.getElementById('login-btn').classList.add('hidden');
     document.getElementById('user-dropdown').classList.remove('hidden');
   }
+
+  socket.on('todayPriceChanged', (_data) => {
+    const targetElement = document.getElementById('targetStock');
+    if (!targetElement) return;
+    const stockCode = targetElement.getAttribute('name');
+    socket.emit('todayPriceCode', [stockCode]);
+  });
+
+  socket.on('todayPriceByCode', (data) => {
+    const targetElement = document.getElementById('targetStock');
+    const stockCode = targetElement.getAttribute('name');
+
+    if (data[stockCode]) {
+      const currentPriceElement = document.getElementById('todayCurrentPrice');
+      currentPriceElement.innerHTML = data[stockCode];
+    }
+  });
 
   fetch('/member/userInfo', {
     method: 'get',
@@ -85,7 +112,9 @@ window.onload = async () => {
             <div class="container-fluid justify-content-start">
                 <div class="row justify-content-start">
                     <div class="col-4">
-                        <h4>${dataOfToday.name} ${dataOfToday.stockCode}</h4>
+                        <h4 id="targetStock" name="${dataOfToday.stockCode}">
+                          ${dataOfToday.name} ${dataOfToday.stockCode}
+                        </h4>
                     </div>
                     <div class="col-4">
                         <button type="button" class="btn btn-outline-primary">+ 關注</button>
@@ -101,7 +130,7 @@ window.onload = async () => {
                     </tr>
                     <tr>
                         <td>${dataOfToday.openPrice}</td>
-                        <td>${dataOfToday.price}</td>
+                        <td id="todayCurrentPrice">${dataOfToday.price}</td>
                     </tr>
                 </table>
             </div>
